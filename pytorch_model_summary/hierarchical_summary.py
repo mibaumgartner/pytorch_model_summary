@@ -19,6 +19,8 @@ def hierarchical_summary(model, print_summary=False):
         child_lines = []
         total_params = 0
         for key, module in model._modules.items():
+            if module is None:
+                continue
             mod_str, num_params = repr(module)
             mod_str = _addindent(mod_str, 2)
             child_lines.append('(' + key + '): ' + mod_str)
