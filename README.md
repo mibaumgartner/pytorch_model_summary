@@ -1,3 +1,6 @@
+## Changes
+Slightly modified version to include the dtype of the outputs (helpfull to debug mixed precision :) )
+
 ## Pytorch Model Summary -- Keras style `model.summary()` for PyTorch
 [![PyPI version fury.io](https://badge.fury.io/py/pytorch-model-summary.svg)](https://pypi.python.org/pypi/pytorch-model-summary/)
 [![Downloads](https://pepy.tech/badge/pytorch-model-summary)](https://pepy.tech/project/pytorch-model-summary)

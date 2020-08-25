@@ -4,6 +4,7 @@
 
 import torch
 import torch.nn as nn
+from typing import Sequence, Mapping
 from collections import OrderedDict
 from pytorch_model_summary.hierarchical_summary import hierarchical_summary
 
@@ -51,16 +52,36 @@ def summary(model, *inputs, batch_size=-1, show_input=False, show_hierarchical=F
             def _shapes(_):
                 if isinstance(_, torch.Tensor):
                     _lst.append(list(_.size()))
-                elif isinstance(_, (tuple, list)):
+                elif isinstance(_, Sequence):
                     for _x in _:
+                        _shapes(_x)
+                elif isinstance(_, Mapping):
+                    for _x in _.values():
                         _shapes(_x)
                 else:
                     # TODO: decide what to do when there is an input which is not a tensor
                     raise Exception('Object not supported')
-
             _shapes(x)
-
             return _lst
+        
+        def dtypes(x):
+            _lst = list()
+
+            def _dtypes(_):
+                if isinstance(_, torch.Tensor):
+                    _lst.append(str(_.dtype))
+                elif isinstance(_, Sequence):
+                    for _x in _:
+                        _dtypes(_x)
+                elif isinstance(_, Mapping):
+                    for _x in _.values():
+                        _dtypes(_x)
+                else:
+                    # TODO: decide what to do when there is an input which is not a tensor
+                    raise Exception('Object not supported')
+            _dtypes(x)
+            return _lst
+
 
         def hook(module, input, output=None):
             module_name = module_summary.get(id(module)).get('module_name')
@@ -74,6 +95,7 @@ def summary(model, *inputs, batch_size=-1, show_input=False, show_hierarchical=F
 
             if show_input is False and output is not None:
                 summary[m_key]["output_shape"] = shapes(output)
+                summary[m_key]["dtype"] = dtypes(output)
 
             params = 0
             params_trainable = 0
@@ -124,8 +146,8 @@ def summary(model, *inputs, batch_size=-1, show_input=False, show_hierarchical=F
     _len_str_parent = max([len(v['parent_layers']) for v in summary.values()] + [13]) + 3
     _len_str_layer = max([len(layer) for layer in summary.keys()] + [15]) + 3
     _len_str_shapes = max([len(', '.join([str(_) for _ in summary[layer][_key_shape]])) for layer in summary] + [15]) + 3
-    _len_line = 35 + _len_str_parent * int(show_parent_layers) + _len_str_layer + _len_str_shapes
-    fmt = ("{:>%d} " % _len_str_parent if show_parent_layers else "") + "{:>%d}  {:>%d} {:>15} {:>15}" % (_len_str_layer, _len_str_shapes)
+    _len_line = 35 + _len_str_parent * int(show_parent_layers) + _len_str_layer + _len_str_shapes + 20
+    fmt = ("{:>%d} " % _len_str_parent if show_parent_layers else "") + "{:>%d}  {:>%d} {:>15} {:>15} {:>20}" % (_len_str_layer, _len_str_shapes)
 
     """ starting to build output text """
 
@@ -133,7 +155,7 @@ def summary(model, *inputs, batch_size=-1, show_input=False, show_hierarchical=F
     lines = list()
     lines.append('-' * _len_line)
     _fmt_args = ("Parent Layers",) if show_parent_layers else ()
-    _fmt_args += ("Layer (type)", f'{"Input" if show_input else "Output"} Shape', "Param #", "Tr. Param #")
+    _fmt_args += ("Layer (type)", f'{"Input" if show_input else "Output"} Shape', "Param #", "Tr. Param #", "DType")
     lines.append(fmt.format(*_fmt_args))
     lines.append('=' * _len_line)
 
@@ -145,7 +167,8 @@ def summary(model, *inputs, batch_size=-1, show_input=False, show_hierarchical=F
         _fmt_args += (layer,
                       ", ".join([str(_) for _ in summary[layer][_key_shape]]),
                       "{0:,}".format(summary[layer]["nb_params"]),
-                      "{0:,}".format(summary[layer]["nb_params_trainable"]))
+                      "{0:,}".format(summary[layer]["nb_params_trainable"]),
+                      "{}".format(summary[layer]["dtype"]))
         line_new = fmt.format(*_fmt_args)
         lines.append(line_new)
 
