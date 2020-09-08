@@ -29,7 +29,7 @@ def hierarchical_summary(model, print_summary=False):
 
         for name, p in model._parameters.items():
             if p is not None:
-                total_params += reduce(lambda x, y: x * y, p.shape)
+                total_params += p.numel() # reduce(lambda x, y: x * y, p.shape)
 
         main_str = model._get_name() + '('
         if lines:
